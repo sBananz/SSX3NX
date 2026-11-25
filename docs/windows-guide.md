@@ -98,5 +98,5 @@ intro movie (`RECOMP_SKIP_INTRO=2`) or showing the frame rate (`RECOMP_FPS_OVERL
 - **Docker Desktop did not start**: open it from the Start menu, wait until it says it's running, then press the button
   again.
 - **The build stops with "Killed" or stalls**: the PC is short of memory. Close other programs and press Build again.
-- **A problem with the game on the Switch**: see Troubleshooting in the [README](../README.md#troubleshooting).
+- **A problem with the game on the Switch**: see "If something goes wrong" in the [README](../README.md#if-something-goes-wrong).
 - Still stuck? Open an [issue](https://github.com/sBananz/SSX3NX/issues) and attach the log from `build\windows\`.
