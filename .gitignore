@@ -1,0 +1,116 @@
+# Build artifacts
+build/
+build-abi/
+out/
+bin/
+*.obj
+*.o
+*.lib
+*.a
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.exp
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Visual Studio
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+Debug/
+Release/
+x64/
+
+# Generated recompiled code (regenerate from XBE with the recomp pipeline)
+src/recomp/gen/
+
+# Game files (user must provide their own legally-owned copies)
+game/
+*.xbe
+*.iso
+*.xiso
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Derived from the game binary -- regenerate with scripts/regen.sh
+decomp/
+
+# Run output and logs
+*.log
+stdout.txt
+stderr.txt
+/shot*.png
+pad_live.txt
+live.pid
+snap*.png
+dump.trigger
+nav.png
+# stray copy of the tree with generated game code -- never commit
+tools/ssx3-recomp/
+play_stdout.txt
+play_stderr.txt
+logs/
+work/
+game_state.txt
+game_state.tmp
+soak.png
+snap.trigger
+snap_tmp.bmp
+
+# Local rip / ISO
+disk/
+build-linux/
+/game
+build-linux-abi/
+build-vk/
+build-linux/
+tk/
+src/recomp/
+game
+/save/
+/keys.ini
+dist/
+
+# tools/hdtex_match.py's signature cache
+hd-textures/.sig_cache.npz
+disk
+build-web/
+build-switch/
+*.nro
+*.nacp
+*.sym
+*.nsp
+
+# --- SSX3NX public repo: never publish -----------------------------------
+# HD texture pack (Bl4ckH4nd's, derived from the game's textures): get it
+# from the upstream SSX3-recomp release; tools/hdtex_match.py rebuilds the map
+hd-textures/
+# Art taken from the game / third-party logos (the Switch logo is drawn in code)
+art/xbox_console_128x128.png
+art/switch_console.png
+# Xbox save data (title 4541003C), Switch screenshots, dist zips
+4541003c/
+/*.jpg
+dist/
+*.zip
+# Local agent notes
+CLAUDE.md
+.claude/
+PORTING_PLAN.md

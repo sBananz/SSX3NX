@@ -1,0 +1,215 @@
+#  =====================================================================
+#   SSX 3 for Nintendo Switch (SSX3NX) -- settings
+#  =====================================================================
+#
+#  One setting per line: NAME=value. A line starting with '#' is ignored,
+#  so to turn a setting on, remove the '#' in front of it.
+#
+#  The values below are the tested defaults: stock Switch clocks, a steady
+#  30 FPS in races, 60 FPS in the menus. You don't need to change anything.
+#
+#  Sections:
+#    1. Controls
+#    2. Picture
+#    3. Performance and clocks
+#    4. Docked / Switch Lite
+#    5. Startup and storage
+#    6. Troubleshooting (only if something looks or sounds wrong)
+#    7. Developer tools (frame-rate display, profilers, logging)
+
+
+#  ---------------------------------------------------------------------
+#   1. CONTROLS
+#  ---------------------------------------------------------------------
+
+# Riding layout. 1 = PS2-style: B jump, Y boost / tweak, A handplant,
+# L / R / ZL / ZR the four grabs, X (or -) reset.
+# 0 = the Xbox layout by button position (A jump and confirm).
+# Menus always use the Nintendo buttons: A confirm, B back.
+SSX3NX_PS2_CONTROLS=1
+
+# On-screen button prompts drawn as Switch buttons. 0 = the original Xbox icons.
+#SSX3NX_BUTTON_ICONS=0
+
+# Options > Controller and the loading screens show a Switch Pro Controller.
+# 0 = the original Xbox controller.
+#SSX3NX_PRO_CONTROLLER=0
+
+# Your own controller picture: put pro_controller.png (PNG with alpha, 4:3,
+# e.g. 880x656) in sdmc:/switch/ssx3nx/icons/.
+
+# "Please don't turn off your Switch" on the saving screens. 0 = the Xbox wording.
+#SSX3NX_SWITCH_TEXT=0
+
+
+#  ---------------------------------------------------------------------
+#   2. PICTURE
+#  ---------------------------------------------------------------------
+
+# Menus at 16:9. 1 = stretched evenly to widescreen, 0 = 4:3 with side bars
+# as the game drew them, 2 = widescreen 3D with the menus kept 4:3.
+RECOMP_WIDESCREEN_MENUS=1
+
+# Boost look: speed lines and a soft blur at the screen edges while you
+# boost. 2 = speed lines only, 0 = off.
+SSX3NX_BOOST_LINES=1
+
+# Smoothing and texture options (0 = off). These cost GPU time; the
+# defaults are what holds 30 FPS.
+RECOMP_MSAA=1
+RECOMP_ANISO=0
+RECOMP_HDTEX=0
+RECOMP_CRT=0
+
+# Internal resolution in lines (default 720 = the handheld screen).
+#RECOMP_RES=720
+
+
+#  ---------------------------------------------------------------------
+#   3. PERFORMANCE AND CLOCKS
+#  ---------------------------------------------------------------------
+
+# Clock speeds in MHz while the game runs (0 = leave the system's).
+# The stock clocks below hold 30 FPS. For extra headroom in the busiest
+# moments (the start of Metro City), you can overclock to CPU 1785,
+# GPU 768, memory 1600 -- at the cost of battery and heat.
+SSX3NX_CPU_MHZ=1020
+SSX3NX_GPU_MHZ=384
+SSX3NX_MEM_MHZ=1331
+
+# 1 = use the clocks above even while sys-clk / Horizon OC is running.
+# 0 = let sys-clk's profile decide. (A .nro runs inside whichever game
+# hosts the Homebrew Menu, so a sys-clk profile made for "SSX 3" never applies.)
+SSX3NX_CLOCK_FORCE=1
+
+# Draw distance (1.0 = the original game). 0.85 keeps races at 30 FPS
+# with six riders on screen.
+RECOMP_DRAW_DIST=0.85
+
+# Dynamic draw distance: when a frame runs late, the view pulls in a little
+# (down to RECOMP_DYN_DRAW_MIN x the original) and eases back out when
+# there's time again. 0 = a fixed view.
+#RECOMP_DYN_DRAW_DIST=0
+RECOMP_DYN_DRAW_MIN=0.5
+
+# Rider shadow detail (1 = the original 128x128; higher costs a lot).
+RECOMP_SHADOW_RES=1
+
+# Frame rate. 2 = races at 30 FPS with the game, physics and controls still
+# at 60 Hz underneath (the game's own half-rate mode); menus at 60.
+# 0 = try to render every update (not steady on the Switch).
+#RECOMP_FPS30=2
+
+
+#  ---------------------------------------------------------------------
+#   4. DOCKED / SWITCH LITE
+#  ---------------------------------------------------------------------
+
+# Docked, the game renders at SSX3NX_DOCK_RES lines (1080 = full HD; 900 or
+# 720 for more headroom; 0 = same as handheld) and switches to the docked
+# clocks. It switches back when you undock, even mid-race.
+#SSX3NX_DOCK_RES=1080
+#SSX3NX_DOCK_CPU_MHZ=1020
+#SSX3NX_DOCK_GPU_MHZ=768
+#SSX3NX_DOCK_MEM_MHZ=1600
+
+# Switch Lite: it can't dock, so 1 makes the game act docked anyway
+# (docked clocks, and the 1080 picture scaled down to its screen -- sharper,
+# for a little more GPU cost). 0 = always handheld. Unset = follow the console.
+#SSX3NX_DOCKED=1
+
+
+#  ---------------------------------------------------------------------
+#   5. STARTUP AND STORAGE
+#  ---------------------------------------------------------------------
+
+# Intro movies. 0 = play them all (EA, THX, then the ~3.5-minute DJ Atomika
+# intro). 1 = skip all of them. 2 = EA and THX logos only.
+RECOMP_SKIP_INTRO=0
+
+# Where the game files and the system files live.
+#RECOMP_GAME_DIR=sdmc:/switch/ssx3nx/game
+#RECOMP_SYSTEM_DIR=sdmc:/switch/ssx3nx
+
+# Saves go into the emulated Xbox hard disk (the Partition*.img files, about
+# 5.2 GB created at first boot). This sends them to a plain folder instead.
+#RECOMP_SAVE_DIR=sdmc:/switch/ssx3nx/saves
+
+# Experimental: cap each hard-disk image at this many MB (the game still
+# sees the full size). Not fully tested.
+#SSX3NX_PART_MB=64
+
+
+#  ---------------------------------------------------------------------
+#   6. TROUBLESHOOTING
+#  ---------------------------------------------------------------------
+#  Everything here is on by default and tested. Each setting switches one
+#  speed-up back to the slower, original method. Try one if you see a
+#  specific problem.
+
+# Black screen or a broken picture: present frames the old way (CPU copy).
+#RECOMP_VK_PRESENT=0
+
+# Textures look wrong or blocky: decode compressed textures on the CPU.
+#RECOMP_TEX_DXT_NATIVE=0
+
+# A texture shows late or wrong for a moment: hash every texture fully.
+#RECOMP_TEX_SAMPLED_HASH=0
+
+# Geometry looks wrong (stretched or missing shapes):
+#RECOMP_VSH_INDEXED=0
+
+# Objects popping out, or wrong colours: run the game's own maths code.
+#SSX3NX_NATIVE_RENDER=0
+
+# Crackling music or speech: keep more audio buffered (ms, default 80).
+#RECOMP_APU_STREAM_CUSHION_MS=120
+
+# Black flashes when leaving an event are hidden (the last frame is held
+# up to 3 s). 0 = show every frame.
+#SSX3NX_TRANSITION_HOLD=0
+
+# GPU work shortcuts (0 = the long way; all give the same result):
+#RECOMP_FETCH_PLAN=0
+#RECOMP_VSH_POS_SLICE=0
+#RECOMP_TEX_INFO_CACHE=0
+#RECOMP_TEX_DECODE_FAST=0
+#RECOMP_PB_RUN_BATCH=0
+#RECOMP_PB_METHOD_TABLE=0
+
+# Renderer: vk (Vulkan, the default) or sw (software -- very slow).
+RECOMP_GPU=vk
+
+# Must stay 0: 1 caused missing textures in races.
+RECOMP_TEX_HASH_SKIP=0
+
+
+#  ---------------------------------------------------------------------
+#   7. DEVELOPER TOOLS
+#  ---------------------------------------------------------------------
+#  All off for play. They write to SSX3NX.log beside the game and cost a
+#  little speed themselves.
+
+# Log detail. warn = only warnings and errors (keeps SD card writes down).
+# info = the full trace a bug report needs. debug / trace = more still.
+RECOMP_LOG_LEVEL=warn
+
+# Frame rate and draw count in the top-left corner of the screen.
+#RECOMP_FPS_OVERLAY=1
+# A frame-rate line in the log once a second.
+#XBOX_SHOW_FPS=1
+
+# Per-core / per-thread load, plus update vs render time in races.
+#SSX3NX_CPU_STATS=1
+# The Vulkan renderer's per-draw costs.
+#RECOMP_VKR_STATS=1
+# GPU time per frame (frames slower than the number, in ms, are listed).
+#RECOMP_VKR_GPUPROF=33
+#RECOMP_VKR_GPUPROF_FRAME=1
+# Profiler: the busiest game functions in races, every 10 s. Needs
+# SSX3NX.sym beside the .nro.
+#SSX3NX_GUEST_PROF=1
+# Every menu screen and selection, for a bug report about the menus.
+#RECOMP_UI_TRACE=1
+# Every save-file access, even at warn.
+#RECOMP_SAVE_TRACE=1
