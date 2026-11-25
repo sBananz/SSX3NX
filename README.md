@@ -120,6 +120,8 @@ SSX3NX stands on the work of these projects and people:
 | [Capstone](https://www.capstone-engine.org/), [Ghidra](https://ghidra-sre.org/) | Disassembly and reverse engineering. |
 | **EA Canada** | For making *SSX 3*. |
 
+🤖 This port was made with AI assistance from **Claude** (Anthropic).
+
 ## Legal
 
 - SSX3NX is an unofficial fan project. It is not affiliated with or endorsed by Electronic Arts, EA Canada, Microsoft or Nintendo.
