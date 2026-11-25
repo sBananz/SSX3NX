@@ -5,7 +5,10 @@
 #   <parent>/ssx3-recomp    this repo
 #   <parent>/SSX3           your own rip: default.xbe + data/ (not in git)
 #
-# Also creates xboxrecomp/.venv with capstone. Safe to re-run.
+# TK=<folder> puts the toolkit elsewhere (the SSX3NX Builder uses build/xboxrecomp).
+# Also creates xboxrecomp/.venv with capstone (on Windows, MSYS2's Python with
+# pacman's capstone is used instead). Safe to re-run: a toolkit that already has
+# the changes is never touched.
 set -euo pipefail
 
 XBOXRECOMP_BASE=193e299               # v0.13.1 "Cut Short"
@@ -13,24 +16,44 @@ XBOXRECOMP_URL=${XBOXRECOMP_URL:-https://github.com/sp00nznet/xboxrecomp.git}
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PARENT="$(dirname "$HERE")"
-TK="$PARENT/xboxrecomp"
+TK="${TK:-$PARENT/xboxrecomp}"     # the SSX3NX Builder keeps it in build/xboxrecomp
 
+CLONED=0
 if [ ! -d "$TK/.git" ]; then
     git clone "$XBOXRECOMP_URL" "$TK"
+    CLONED=1
 fi
-if [ -z "$(git -C "$TK" status --porcelain --untracked-files=no)" ]; then
+# Never move an existing toolkit: one that already has the changes (applied,
+# or committed on a branch, as in development) is left as it is. Only a clone
+# made just now, or a clean checkout of the base commit, is patched.
+at_base=0
+[ "$(git -C "$TK" rev-parse HEAD)" = "$(git -C "$TK" rev-parse "$XBOXRECOMP_BASE^{commit}")" ] && at_base=1
+clean=0
+[ -z "$(git -C "$TK" status --porcelain --untracked-files=no)" ] && clean=1
+if grep -q "XBOX_PAGEMAP" "$TK/src/kernel/guest_ptr.h" 2>/dev/null; then
+    echo "toolkit: already has the SSX 3 and Switch changes"
+elif git -C "$TK" apply --reverse --check "$HERE/patches/xboxrecomp-local.patch" 2>/dev/null; then
+    git -C "$TK" apply "$HERE/patches/xboxrecomp-switch.patch"
+    echo "toolkit: Switch patch applied on top of the local patch"
+elif [ "$clean" = 1 ] && { [ "$CLONED" = 1 ] || [ "$at_base" = 1 ]; }; then
     git -C "$TK" checkout -q "$XBOXRECOMP_BASE"
     git -C "$TK" apply "$HERE/patches/xboxrecomp-local.patch"
     # SSX3NX: the Switch layer on top (page-mapped guest memory, NVK, audout...)
     git -C "$TK" apply "$HERE/patches/xboxrecomp-switch.patch"
     echo "toolkit: $XBOXRECOMP_BASE + local and Switch patches applied"
-elif git -C "$TK" apply --reverse --check "$HERE/patches/xboxrecomp-switch.patch" 2>/dev/null; then
-    echo "toolkit: local and Switch patches already applied"
-elif git -C "$TK" apply --reverse --check "$HERE/patches/xboxrecomp-local.patch" 2>/dev/null; then
-    git -C "$TK" apply "$HERE/patches/xboxrecomp-switch.patch"
-    echo "toolkit: Switch patch applied on top of the local patch"
 else
-    echo "toolkit has other local changes; leaving it alone" >&2
+    echo "toolkit at $TK has other changes and lacks the SSX 3 / Switch ones; left alone." >&2
+    echo "Delete that folder and run this again for a fresh one." >&2
+    exit 1
+fi
+
+# Windows (MSYS2): the UCRT64 Python with pacman's capstone does the work
+# (build_switch.sh passes it to regen.sh as PY), no venv.
+case "$(uname -s)" in MINGW*|MSYS*) PY="${PY:-${MINGW_PREFIX:-/ucrt64}/bin/python.exe}" ;; esac
+if [ -n "${PY:-}" ]; then
+    if "$PY" -c "import capstone" 2>/dev/null; then echo "capstone ok ($PY)"; exit 0; fi
+    echo "$PY has no capstone: pacman -S mingw-w64-ucrt-x86_64-python-capstone" >&2
+    exit 1
 fi
 
 # Python venv with capstone. This WSL box had no pip and no ensurepip, so the

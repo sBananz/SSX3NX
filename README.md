@@ -26,6 +26,7 @@
 
 - [What is this?](#what-is-this)
 - [Features](#features)
+- [Quick start (Windows)](#quick-start-windows)
 - [What you need](#what-you-need)
 - [Build](#build)
 - [Install and play](#install-and-play)
@@ -71,6 +72,19 @@ with the Switch platform layer brought over from [**OpenTrickyNX**](https://gith
 - **One settings file** (`SSX 3 env.txt`) with every option explained, and a troubleshooting section that ties each switch to a
   symptom.
 
+## Quick start (Windows)
+
+1. Download **Source code (zip)** from the [latest release](https://github.com/sBananz/SSX3NX/releases/latest) and extract it
+   to a short folder like `C:\SSX3NX`.
+2. Double-click **`SSX3NX Builder.bat`**.
+3. Press the four buttons in order: **Install / check** (once), pick your game (**Folder...** or **Disc image...**),
+   **Build SSX3NX.nro**, then **Copy to SD card**.
+
+The builder installs everything it needs, checks that your copy is the PAL release, builds the game from it and copies
+it to your SD card. The first build takes 20 to 40 minutes. **[Step-by-step guide with every click explained](docs/windows-guide.md)**
+
+On Linux or macOS, or to build by hand, see [Build](#build).
+
 ## What you need
 
 | | |
@@ -83,6 +97,8 @@ with the Switch platform layer brought over from [**OpenTrickyNX**](https://gith
 | **The console** | A Switch running custom firmware (Atmosphère) with the Homebrew Menu, and about **7.5 GB free** on the SD card: ~2.1 GB of game files plus ~5.2 GB of emulated Xbox hard disk, created on first boot. |
 
 ## Build
+
+On Windows, the [SSX3NX Builder](#quick-start-windows) does all of this for you. By hand:
 
 **1. Lay out the folders.** The scripts expect three folders side by side:
 
