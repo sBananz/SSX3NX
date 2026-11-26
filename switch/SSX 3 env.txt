@@ -95,10 +95,17 @@ RECOMP_DYN_DRAW_MIN=0.5
 # Rider shadow detail (1 = the original 128x128; higher costs a lot).
 RECOMP_SHADOW_RES=1
 
-# Frame rate. 2 = races at 30 FPS with the game, physics and controls still
-# at 60 Hz underneath (the game's own half-rate mode); menus at 60.
+# Frame rate. Physics and controls always run at 60 Hz underneath.
+# 3 = adaptive: races at a steady 30, going up to 60 while there is time
+#     for it and dropping straight back to 30 when frames run late.
+# 2 = races always at 30 (the game's own half-rate mode); menus at 60.
 # 0 = try to render every update (not steady on the Switch).
-#RECOMP_FPS30=2
+#RECOMP_FPS30=3
+# Adaptive tuning: game-thread ms per frame allowed for 60 (of 16.7),
+# seconds of headroom before going up, missed-flip score that drops to 30.
+#SSX3NX_FPS60_WORK=14
+#SSX3NX_FPS60_HOLD=2
+#SSX3NX_FPS60_MISS=1.5
 
 
 #  ---------------------------------------------------------------------

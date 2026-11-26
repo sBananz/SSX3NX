@@ -327,10 +327,10 @@ void sub_001AD720(void)
             boosted = 0;
         }
     }
-    /* RECOMP_FPS30=2 sets the app's 30 Hz flag (app+0x38) in game only
+    /* RECOMP_FPS30=2/3 set the app's 30 Hz flag (app+0x38) in game only
      * (sub_000CC8F0); nothing else clears it, so once out of the in-game
      * state it is cleared here: menus and the frontend render at 60. */
-    if (app >= 0x10000u && fps30_mode() == 2 && MEM8(app + 0x38)) {
+    if (app >= 0x10000u && fps30_mode() >= 2 && MEM8(app + 0x38)) {
         cur = MEM32(app + 4);
         if (!(cur >= 0x10000u && MEM32(cur) == 0x00299D7Cu))
             ST8(app + 0x38, 0);
@@ -378,6 +378,9 @@ static float s_dd_min = -1.0f;     /* RECOMP_DYN_DRAW_MIN; 0 = dynamic view off 
  * sub_000D3880). Written and read on the game thread. */
 static double s_frame_upd_ms, s_frame_busy_ms;
 static int fps30_mode(void);
+/* RECOMP_FPS30=3: the race is rendering at 60 right now (game thread
+ * writes, the executor's flip hook reads). */
+static volatile int s_fps_at60;
 
 static void dd_perf_init(void)
 {
@@ -463,7 +466,11 @@ static void dd_perf_frame(void)
             s_dd_perf = s_dd_perf * 1.02f > (float)floor_ ? (float)floor_ : s_dd_perf * 1.02f;
         }
     }
-    if (fps30_mode() == 2) {
+    if (fps30_mode() >= 2 && s_fps_at60) {
+        /* adaptive, at 60 just now: the view is not pulled in for 60 (a
+         * frame that misses drops the race back to 30 instead) and it was
+         * only allowed up at the full setting */
+    } else if (fps30_mode() >= 2) {
         /* 30 Hz in game: frames are paced to 33.3 ms, so the interval only
          * says when the game falls behind (two 60 Hz updates + one render
          * no longer fit) -- then pull in. Let out only while that work
@@ -1118,6 +1125,7 @@ static void split_report(LONGLONG now)
 /* The in-game render (vtable 0x299D7C slot 0x18): thiscall, returns a bool
  * in al that the app loop tests -- left as the original sets it. */
 extern void sub_000D3880_gen(void);
+static void fps_adapt_frame(double ren_ms);   /* RECOMP_FPS30=3, below */
 
 /* What the game thread is in, for the guest profiler (guest_prof.c,
  * SSX3NX_GUEST_PROF): 0 other, 1 the in-game update, 2 the in-game render. */
@@ -1135,6 +1143,7 @@ void sub_000D3880(void)
     d = split_now() - t;
     s_frame_busy_ms = s_frame_upd_ms + (double)d * 1000.0 / (double)s_split.freq;
     s_frame_upd_ms = 0.0;
+    fps_adapt_frame((double)d * 1000.0 / (double)s_split.freq);
     if (s_split.on > 0) {
         s_split.ren += d;
         s_split.nren++;
@@ -1149,9 +1158,11 @@ void sub_000D3880(void)
  *      update, so the app loop renders once per two 60 Hz updates. Physics,
  *      controls and the clock stay at 60 Hz, as in the game's own split
  *      screen. Menus and the frontend keep 60.
+ *   3  adaptive (Switch default): 30 as with 2, and 60 while one update
+ *      plus one render fit in a 60 Hz frame (see fps_adapt_frame)
  *   1  the game's own choice (30 only in split screen and a few spots)
  *   0  60 always (the PC default): the flag is cleared after every update
- * With 2, the executor's flips are also paced to SSX3NX_RACE_FLIP_HZ
+ * With 2 and 3, the executor's flips are also paced to SSX3NX_RACE_FLIP_HZ
  * (default 30) while in game and to 60 elsewhere (nv2a_set_flip_hz,
  * xboxrecomp flip_pace), so frames leave at even 33.3 ms intervals.
  * RECOMP_FLIP_HZ=0 leaves the pacing off entirely.
@@ -1165,36 +1176,145 @@ static int fps30_mode(void)
     if (m < 0) {
         const char *e = getenv("RECOMP_FPS30");
 #if defined(__SWITCH__)
-        m = e && *e ? atoi(e) : 2;
+        m = e && *e ? atoi(e) : 3;
 #else
         m = e && *e ? atoi(e) : 0;
 #endif
-        if (m < 0 || m > 2)
+        if (m < 0 || m > 3)
             m = 0;
     }
     return m;
 }
 
+/*
+ * Adaptive 30/60 (RECOMP_FPS30=3). The race renders at 30 (app+0x38 set,
+ * flips paced to 30) and goes up to 60 when, for SSX3NX_FPS60_HOLD seconds
+ * (default 2) in a row:
+ *   - one 60 Hz update plus one render on the game thread (smoothed) come
+ *     under SSX3NX_FPS60_WORK ms (default 14 of the 16.7 ms frame; the
+ *     executor and the GPU need some of the rest),
+ *   - the game itself is not asking for 30 (split screen, the stretches it
+ *     drops on the console too), and
+ *   - the dynamic view is at the full setting (not pulled in for 30).
+ * At 60, a flip that leaves over 20.5 ms after the one before is a miss
+ * (whatever was late: the game, the executor or a GPU wait); each scores 1
+ * and the score fades 5% a frame, so two misses close together (score over
+ * SSX3NX_FPS60_MISS, default 1.5) drop the race back to 30 at once. The
+ * executor and the GPU can't be timed from the game thread at 30, so going
+ * up is partly a trial: after a stint at 60 under 5 s the wait before the
+ * next try doubles (2, 4, 8, 16, 30 s); a stint over 20 s resets it to 2 s.
+ * Each change is logged as [FPS60].
+ */
+static volatile unsigned s_fps_late;     /* executor: late flips at 60 in game */
+static volatile int s_fps_game30;        /* game thread: the game's own choice is 30 */
+static double s_fps_upd_ema;             /* game thread: ms per in-game update */
+
 /* After each paced flip (executor thread): the flip rate for where the game
- * is -- 30 in game, 60 elsewhere. Taken by flip_pace at the next flip. */
+ * is -- 30 in game (60 while adaptive says so), 60 elsewhere. Taken by
+ * flip_pace at the next flip. */
 static void flip_rate_hook(double interval_s, double slept_s)
 {
     static double race_hz = -1.0, cur = -1.0;
+    static int settle;
     double want;
-    (void)interval_s; (void)slept_s;
+    int in_game = ssx3_InGame();
+    (void)slept_s;
     if (race_hz < 0.0) {
         const char *e = getenv("SSX3NX_RACE_FLIP_HZ");
         race_hz = e && *e ? atof(e) : 30.0;
         if (race_hz < 10.0 || race_hz > 240.0)
             race_hz = 30.0;
     }
-    want = ssx3_InGame() ? race_hz : 60.0;
+    if (settle > 0)
+        settle--;                         /* the flips after a rate change start a fresh grid */
+    else if (in_game && cur == 60.0 && s_fps_at60 && interval_s > 0.0205)
+        s_fps_late++;
+    want = !in_game ? 60.0 : fps30_mode() == 3 && s_fps_at60 ? 60.0 : race_hz;
     if (want != cur) {
+        int quiet = fps30_mode() == 3 && in_game && cur > 0.0;   /* logged as [FPS60] */
         cur = want;
+        settle = 2;
         nv2a_set_flip_hz(want);
-        fprintf(stderr, "[FPS30] flips paced to %.0f Hz (%s)\n", want, want == 60.0 ? "menus" : "in game");
-        fflush(stderr);
+        if (!quiet) {
+            fprintf(stderr, "[FPS30] flips paced to %.0f Hz (%s)\n", want, want == 60.0 ? "menus" : "in game");
+            fflush(stderr);
+        }
     }
+}
+
+static double fps_env(const char *name, double def, double lo, double hi)
+{
+    const char *e = getenv(name);
+    double v = e && *e ? atof(e) : def;
+    return v < lo || v > hi ? def : v;
+}
+
+/* After each in-game render (game thread); ren_ms = that render's time. */
+static void fps_adapt_frame(double ren_ms)
+{
+    static double work_ms = -1.0, miss_max, hold_s, ren_ema, score, cooldown = 2.0;
+    static LONGLONG last, ok_from, at60_from;
+    static unsigned late_seen, tries, drops;
+    LONGLONG now;
+    double dt, work60, f;
+    unsigned late;
+    if (fps30_mode() != 3)
+        return;
+    if (work_ms < 0.0) {
+        work_ms = fps_env("SSX3NX_FPS60_WORK", 14.0, 4.0, 16.6);
+        miss_max = fps_env("SSX3NX_FPS60_MISS", 1.5, 0.5, 20.0);
+        hold_s = fps_env("SSX3NX_FPS60_HOLD", 2.0, 0.2, 60.0);
+        fprintf(stderr, "[FPS60] adaptive 30/60 in races (RECOMP_FPS30=3): up to 60 when update + render "
+                "stay under %.1f ms for %.1f s, back to 30 on missed flips\n", work_ms, hold_s);
+    }
+    f = (double)s_split.freq;
+    now = split_now();
+    dt = last ? (double)(now - last) / f : 0.0;
+    last = now;
+    late = s_fps_late - late_seen;
+    late_seen += late;
+    if (dt <= 0.0 || dt > 0.25) {         /* a load, a pause, a replay starting: measure afresh */
+        ren_ema = 0.0;
+        score = 0.0;
+        ok_from = 0;
+        return;
+    }
+    ren_ema = ren_ema > 0.0 ? ren_ema * 0.9 + ren_ms * 0.1 : ren_ms;
+    work60 = s_fps_upd_ema + ren_ema;
+    if (s_fps_at60) {
+        double stint = (double)(now - at60_from) / f;
+        score = score * 0.95 + (double)late;
+        if (!s_fps_game30 && score <= miss_max)
+            return;
+        if (!s_fps_game30)
+            cooldown = stint < 5.0 ? (cooldown * 2.0 > 30.0 ? 30.0 : cooldown * 2.0)
+                     : stint > 20.0 ? 2.0 : cooldown;
+        s_fps_at60 = 0;
+        drops++;
+        score = 0.0;
+        ok_from = 0;
+        fprintf(stderr, "[FPS60] t=%lu back to 30 after %.1f s at 60 (%s; update %.1f + render %.1f ms); "
+                "next try after %.0f s (%u tries, %u drops)\n",
+                GetTickCount(), stint, s_fps_game30 ? "the game asks for 30" : "missed flips",
+                s_fps_upd_ema, ren_ema, cooldown, tries, drops);
+        fflush(stderr);
+        return;
+    }
+    if (s_fps_game30 || work60 >= work_ms || (s_dd_min > 0.0f && s_dd_perf < 0.999f)) {
+        ok_from = 0;
+        return;
+    }
+    if (!ok_from)
+        ok_from = now;
+    if ((double)(now - ok_from) / f < (hold_s > cooldown ? hold_s : cooldown))
+        return;
+    s_fps_at60 = 1;
+    tries++;
+    at60_from = now;
+    score = 0.0;
+    fprintf(stderr, "[FPS60] t=%lu up to 60 (update %.1f + render %.1f = %.1f ms, view x%.2f)\n",
+            GetTickCount(), s_fps_upd_ema, ren_ema, work60, s_dd_eff * s_dd_perf);
+    fflush(stderr);
 }
 
 static void fps30_install_pacing(void)
@@ -1205,7 +1325,7 @@ static void fps30_install_pacing(void)
         return;
     done = 1;
     e = getenv("RECOMP_FLIP_HZ");
-    if (fps30_mode() == 2 && !(e && e[0] == '0' && !e[1]))
+    if (fps30_mode() >= 2 && !(e && e[0] == '0' && !e[1]))
         nv2a_flip_hook = flip_rate_hook;
 }
 
@@ -1226,6 +1346,11 @@ void sub_000CC8F0(void)
     g_ssx3_prof_phase = 0;
     t1 = split_now();
     s_frame_upd_ms += (double)(t1 - t0) * 1000.0 / (double)s_split.freq;
+    {
+        double u = (double)(t1 - t0) * 1000.0 / (double)s_split.freq;
+        if (u < 250.0)
+            s_fps_upd_ema = s_fps_upd_ema > 0.0 ? s_fps_upd_ema * 0.9 + u * 0.1 : u;
+    }
     if (s_split.on > 0) {
         LONGLONG d = t1 - t0;
         s_split.upd += d;
@@ -1242,6 +1367,7 @@ void sub_000CC8F0(void)
     if (app < 0x10000u)
         return;
     want = MEM8(app + 0x38) != 0;
+    s_fps_game30 = want;
     if (want != last) {
         uint32_t players = 0;
         if (self >= 0x10000u && MEM32(self + 0x84) >= 0x10000u)
@@ -1249,12 +1375,15 @@ void sub_000CC8F0(void)
         fprintf(stderr, "[FPS30] t=%lu game wants %s (players %u)%s\n",
                 GetTickCount(), want ? "30 Hz" : "60 Hz", players,
                 mode == 2 ? " -- 30 Hz in game (RECOMP_FPS30=2)"
+                : mode == 3 ? (want ? " -- 30 Hz (adaptive)" : " -- adaptive 30/60 (RECOMP_FPS30=3)")
                           : want && mode == 0 ? " -- overridden, rendering at 60" : "");
         fflush(stderr);
         last = want;
     }
     if (mode == 2)
         ST8(app + 0x38, 1);
+    else if (mode == 3)
+        ST8(app + 0x38, want || !s_fps_at60);
     else if (mode == 0)
         ST8(app + 0x38, 0);
 }
