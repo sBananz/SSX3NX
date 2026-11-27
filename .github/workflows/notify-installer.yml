@@ -1,0 +1,60 @@
+name: Update the installer
+
+# When a release is published here, tells sBananz/SSX3NX-installer (its deploy.yml) to take the release's
+# SSX3NX.nro into its manifest and redeploy the installer page: a repository_dispatch of type
+# "ssx3nx-release" with { tag, nro_sha256 }. The installer checks the hash again before using it.
+#
+# Needs the INSTALLER_DISPATCH_TOKEN secret: a fine-grained token with access to sBananz/SSX3NX-installer
+# only, permission Contents: Read and write.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release to send to the installer
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    # pre-releases are left out: the installer offers only real releases
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+    steps:
+      - name: Find the SSX3NX.nro of the release
+        id: nro
+        run: |
+          # the asset can still be uploading when the release is published: wait up to 10 minutes
+          for _ in $(seq 1 60); do
+            digest=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+              --jq '.assets[] | select(.name == "SSX3NX.nro" and .state == "uploaded") | .digest' || true)
+            if [ -n "$digest" ]; then break; fi
+            sleep 10
+          done
+          hash="${digest#sha256:}"
+          if ! printf '%s' "$hash" | grep -Eq '^[0-9a-f]{64}$'; then
+            echo "::error::release $TAG has no uploaded SSX3NX.nro"; exit 1
+          fi
+          echo "SSX3NX.nro of $TAG: $hash"
+          echo "sha256=$hash" >> "$GITHUB_OUTPUT"
+
+      - name: Tell the installer
+        env:
+          GH_TOKEN: ${{ secrets.INSTALLER_DISPATCH_TOKEN }}
+          NRO_SHA256: ${{ steps.nro.outputs.sha256 }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::the INSTALLER_DISPATCH_TOKEN secret is not set"; exit 1
+          fi
+          gh api --method POST repos/sBananz/SSX3NX-installer/dispatches \
+            -f event_type=ssx3nx-release \
+            -f "client_payload[tag]=$TAG" \
+            -f "client_payload[nro_sha256]=$NRO_SHA256"
+          echo "Sent. The installer deploys at https://github.com/sBananz/SSX3NX-installer/actions"
