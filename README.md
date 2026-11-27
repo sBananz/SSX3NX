@@ -14,26 +14,43 @@
 </p>
 
 > [!IMPORTANT]
-> **You need your own copy of SSX 3 for the original Xbox (PAL / European version).** No game files are included and no
-> ready-made game is shared. The SSX3NX Builder makes the game from your copy, so what you build is yours alone: keep it to yourself.
+> **You need your own copy of SSX 3 for the original Xbox (PAL / European version).** No disc image or game data is
+> included: the installer reads your copy in your browser and puts its files in the package for you. Keep the package
+> to yourself.
 
 ## How to get it
 
+**👉 [Open the SSX3NX installer](https://sbananz.github.io/SSX3NX-installer/)**. It runs in Chrome, Edge or Firefox on any
+computer. Nothing to install, and no build.
+
 **You need:**
-- Your own **SSX 3 for the original Xbox, PAL version**: a disc image (`.iso`) or the game's files
-- A **Windows 10/11 PC** with about 15 GB free
+- Your own **SSX 3 for the original Xbox, PAL version**: a disc image (`.iso`, full dump or xiso) or the game's
+  files (the folder with `default.xbe` and `data`)
 - A **Switch with custom firmware** and the Homebrew Menu, with about 7.5 GB free on the SD card
 
 **Then:**
-1. Download **Source code (zip)** from the [latest release](https://github.com/sBananz/SSX3NX/releases/latest) and extract it
-   to a short folder like `C:\SSX3NX`.
-2. Double-click **`SSX3NX Builder.bat`**.
-3. Press the four buttons in order:
-   **Install / check** → **Disc image...** (pick your `.iso`) → **Build SSX3NX.nro** → **Copy to SD card**
+1. **Choose your game** on the installer page: your disc image, or the game folder. The page checks that it is the
+   PAL release.
+2. **Create SSX3NX.zip** (about 2.2 GB). It downloads straight to your computer.
+3. **Extract the zip to the root of your SD card.** You get `sdmc:/switch/ssx3nx/`.
 
-The first time takes a while: installing the tools (one restart) and a 20–40 minute build. After that, it's done.
+**Everything happens in your browser.** Your disc image and game files are read on your own computer and are
+**never uploaded** anywhere. The page only downloads the SSX3NX program and checks its fingerprint. It then copies
+your files straight into the zip on your computer. After the first visit, it even works offline.
 
-📖 Stuck? The **[step-by-step guide](docs/windows-guide.md)** explains every click.
+**Only this exact game executable works**, because SSX3NX is translated from it:
+
+| PAL `default.xbe` | |
+|---|---|
+| SHA-256 | `2ddde69cdeceacb1ac9f52e0ab55f5df75c626c477dc23caaab137fc4679321b` |
+| SHA-1 | `ba876cc11ad38650eac9831b1c7f8c4dbf7c5ba9` |
+| Size | 3,428,352 bytes (title ID `4541003C`) |
+
+The USA and Japanese releases and modified copies are refused, and the page tells you which one you have.
+
+**Updating:** on the installer page, choose your game again (only `default.xbe` is needed) and press
+**Create SSX3NX-update.zip**. It holds only the new `SSX3NX.nro`, README and licences, so your settings and saves stay
+as they are. Extract it the same way.
 
 ## Playing
 
@@ -85,7 +102,8 @@ To turn a setting on, remove the `#` in front of it.
 
 | Problem | Try |
 |---|---|
-| The builder stops | It shows what went wrong; the full messages are in `build\windows\` in the SSX3NX folder. See the [guide](docs/windows-guide.md#if-something-goes-wrong). |
+| The installer refuses your game | It shows a code: your copy is not the PAL release (see the table above), or it is damaged or modified. Include that code in a bug report. |
+| The installer can't save the download | Use a normal (not private) window of Chrome, Edge or Firefox, with about 2.5 GB free on the computer. |
 | "Not enough memory" on the Switch | Start it by holding R over a game, not from the Album. |
 | Black screen or broken picture | `RECOMP_VK_PRESENT=0` in the settings file |
 | Textures look wrong | `RECOMP_TEX_DXT_NATIVE=0` |
@@ -99,9 +117,11 @@ More switches are in section 6 (Troubleshooting) of the settings file.
 
 **Known issue:** the few seconds of flyover before a race starts can dip to 27–28 FPS. Races themselves hold 30.
 
-## Linux, macOS, or building by hand
+## Building it yourself
 
-See **[docs/building.md](docs/building.md)**. It also explains how the port works.
+You don't need to: the installer has the ready-made program. To build `SSX3NX.nro` from source anyway, see
+**[docs/building.md](docs/building.md)** (Linux, macOS, Windows by hand), or use the older Windows
+**[SSX3NX Builder](docs/windows-guide.md)**. building.md also explains how the port works.
 
 ## Credits and acknowledgments
 
@@ -127,8 +147,9 @@ SSX3NX stands on the work of these projects and people:
 - SSX3NX is an unofficial fan project. It is not affiliated with or endorsed by Electronic Arts, EA Canada, Microsoft or Nintendo.
   *SSX* and *SSX 3* are trademarks of Electronic Arts, Xbox is a trademark of Microsoft, and Nintendo Switch is a trademark of
   Nintendo.
-- **No disc image, game data, game code, music or video is distributed.** You need your own copy of the game, and the `.nro` you
-  build from it is for your own use.
+- **No disc image, game data, music or video is distributed**, and neither is the original game executable. You need your own
+  legally obtained copy of the game. The installer reads it only inside your browser and never uploads it. The package it makes
+  holds your own game files, so it is for your own use and must not be shared.
 - Licences: this project is distributed under the **GNU General Public License v3.0 only** (`GPL-3.0-only`, see [LICENSE](LICENSE)),
   because it includes code from OpenTrickyNX under that licence. Code from SSX3-recomp was released under GPL-2.0-or-later and is
   used here under GPL-3.0. The xboxrecomp changes in `patches/` follow xboxrecomp's own licences (MIT, and LGPL-2.1-or-later for
