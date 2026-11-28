@@ -130,6 +130,7 @@ set(GAME_SOURCES
     src/guest_prof.c
     src/recomp_manual.c
     src/save_repair.c
+    src/options_autoload.c
     src/ssx3_overrides.c
     src/thread_dump.c
     src/game_state.c

@@ -298,6 +298,7 @@ int ssx3_WidescreenNow(void)
 extern void sub_001AD720_gen(void);
 extern volatile uint32_t g_ssx3_ui_screen_vt, g_ssx3_ui_screen_ptr;
 static int fps30_mode(void);              /* RECOMP_FPS30, below */
+void ssx3_OptionsAutoloadTick(void);      /* options_autoload.c */
 
 void sub_001AD720(void)
 {
@@ -335,6 +336,7 @@ void sub_001AD720(void)
         if (!(cur >= 0x10000u && MEM32(cur) == 0x00299D7Cu))
             ST8(app + 0x38, 0);
     }
+    ssx3_OptionsAutoloadTick();          /* options_autoload.c */
     sub_001AD720_gen();
 }
 

@@ -114,3 +114,6 @@ dist/
 CLAUDE.md
 .claude/
 PORTING_PLAN.md
+
+# Homebrew Menu icon for the NRO (CMakeLists.txt): the user's own art, kept local
+assets/switch/icon.jpg
